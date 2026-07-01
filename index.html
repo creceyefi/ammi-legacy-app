@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ammi Legacy - App de Asistencia</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 { text-align: center; color: #333; margin-bottom: 30px; }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        select, button { padding: 10px 15px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px; cursor: pointer; }
+        select { background: white; }
+        
+        .tabs {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .tab-btn { padding: 10px 20px; background: #ddd; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .tab-btn.active { background: #007bff; color: white; }
+        
+        .content { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .hidden { display: none; }
+        
+        .input-group { display: flex; gap: 10px; margin-bottom: 20px; }
+        input { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
+        
+        .estudiante-card {
+            background: #f9f9f9;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid #007bff;
+            border-radius: 5px;
+        }
+        .estudiante-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .estudiante-nombre { font-weight: bold; }
+        .estado-badge { padding: 5px 10px; border-radius: 3px; font-size: 12px; }
+        .estado-aprobado { background: #d4edda; color: #155724; }
+        .estado-pendiente { background: #fff3cd; color: #856404; }
+        
+        .asistencias { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 10px; }
+        .semana-control { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+        .semana-label { font-size: 11px; color: #666; }
+        .semana-buttons { display: flex; gap: 3px; }
+        .btn-small { width: 25px; height: 25px; padding: 0; border: none; border-radius: 3px; cursor: pointer; font-size: 12px; background: #ddd; }
+        .btn-small.selected-si { background: #28a745; color: white; }
+        .btn-small.selected-no { background: #dc3545; color: white; }
+        
+        .btn-danger { background: #dc3545; color: white; padding: 5px 10px; border: none; border-radius: 3px; cursor: pointer; font-size: 12px; }
+        .btn-success { background: #28a745; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; }
+        .btn-primary { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; }
+        
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+        .stat-box { padding: 20px; border-radius: 5px; }
+        .stat-box h3 { margin-bottom: 10px; }
+        .stat-number { font-size: 32px; font-weight: bold; }
+        .stat-crece { background: #f3e5f5; color: #6a1b9a; }
+        .stat-efi { background: #e8f5e9; color: #2e7d32; }
+        
+        .reporte-item { padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; }
+        
+        h2 { margin-bottom: 20px; color: #333; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📱 Ammi Legacy - Asistencia</h1>
+        
+        <div class="controls">
+            <select id="rutaSelect" onchange="cambiarRuta()">
+                <option value="crece">Ruta: CRECE</option>
+                <option value="efi">Ruta: EFI</option>
+            </select>
+            <select id="cicloSelect" onchange="cambiarCiclo()">
+                <option value="c1">Ciclo 1</option>
+                <option value="c2">Ciclo 2</option>
+                <option value="c3">Ciclo 3</option>
+                <option value="c4">Ciclo 4</option>
+            </select>
+        </div>
+        
+        <div class="tabs">
+            <button class="tab-btn active" onclick="mostrarTab('registro')">📝 Registro</button>
+            <button class="tab-btn" onclick="mostrarTab('ciclo')">📊 Ciclo</button>
+            <button class="tab-btn" onclick="mostrarTab('estadisticas')">📈 Estadísticas</button>
+        </div>
+        
+        <!-- TAB REGISTRO -->
+        <div id="tab-registro" class="content">
+            <h2>Registro de Asistencia</h2>
+            <div class="input-group">
+                <input type="text" id="nuevoEstudiante" placeholder="Nombre del estudiante">
+                <button class="btn-success" onclick="agregarEstudiante()">+ Agregar</button>
+            </div>
+            <div id="listaEstudiantes"></div>
+        </div>
+        
+        <!-- TAB CICLO -->
+        <div id="tab-ciclo" class="content hidden">
+            <h2>Reporte del Ciclo</h2>
+            <div class="stats-grid">
+                <div class="stat-box stat-crece">
+                    <h3>Graduados</h3>
+                    <div class="stat-number" id="cicloGraduados">0</div>
+                </div>
+                <div class="stat-box stat-efi">
+                    <h3>En Progreso</h3>
+                    <div class="stat-number" id="cicloEnProgreso">0</div>
+                </div>
+            </div>
+            <h3>Estudiantes</h3>
+            <div id="listaReporte"></div>
+        </div>
+        
+        <!-- TAB ESTADISTICAS -->
+        <div id="tab-estadisticas" class="content hidden">
+            <h2>Estadísticas Generales</h2>
+            <div class="stats-grid">
+                <div class="stat-box stat-crece">
+                    <h3>CRECE</h3>
+                    <p>Inscritos: <strong id="creceInscritos">0</strong></p>
+                    <p>Graduados: <strong id="creceGraduados">0</strong></p>
+                    <p>En Progreso: <strong id="creceProgreso">0</strong></p>
+                </div>
+                <div class="stat-box stat-efi">
+                    <h3>EFI</h3>
+                    <p>Inscritos: <strong id="efiInscritos">0</strong></p>
+                    <p>Graduados: <strong id="efiGraduados">0</strong></p>
+                    <p>En Progreso: <strong id="efiProgreso">0</strong></p>
+                </div>
+            </div>
+            <button class="btn-primary" onclick="descargarBackup()">⬇️ Descargar Backup</button>
+        </div>
+    </div>
+    
+    <script>
+        // DATA STRUCTURE
+        let datos = {
+            crece: {
+                c1: { nombre: 'Crece Ciclo 1', semanas: 5, estudiantes: [] },
+                c2: { nombre: 'Crece Ciclo 2', semanas: 5, estudiantes: [] },
+                c3: { nombre: 'Crece Ciclo 3', semanas: 5, estudiantes: [] },
+                c4: { nombre: 'Crece Ciclo 4', semanas: 5, estudiantes: [] }
+            },
+            efi: {
+                c1: { nombre: 'EFI Ciclo 1', semanas: 14, estudiantes: [] },
+                c2: { nombre: 'EFI Ciclo 2', semanas: 14, estudiantes: [] },
+                c3: { nombre: 'EFI Ciclo 3', semanas: 14, estudiantes: [] }
+            }
+        };
+        
+        let rutaActual = 'crece';
+        let cicloActual = 'c1';
+        
+        // LOAD DATA
+        function cargarDatos() {
+            const guardado = localStorage.getItem('ammiLegacyData');
+            if (guardado) datos = JSON.parse(guardado);
+        }
+        
+        // SAVE DATA
+        function guardarDatos() {
+            localStorage.setItem('ammiLegacyData', JSON.stringify(datos));
+        }
+        
+        // CHANGE ROUTE
+        function cambiarRuta() {
+            rutaActual = document.getElementById('rutaSelect').value;
+            cicloActual = rutaActual === 'crece' ? 'c1' : 'c1';
+            document.getElementById('cicloSelect').value = cicloActual;
+            actualizarUI();
+        }
+        
+        // CHANGE CYCLE
+        function cambiarCiclo() {
+            cicloActual = document.getElementById('cicloSelect').value;
+            actualizarUI();
+        }
+        
+        // ADD STUDENT
+        function agregarEstudiante() {
+            const nombre = document.getElementById('nuevoEstudiante').value.trim();
+            if (!nombre) return;
+            
+            const ciclo = datos[rutaActual][cicloActual];
+            ciclo.estudiantes.push({
+                id: Date.now(),
+                nombre: nombre,
+                asistencias: Array(ciclo.semanas).fill(0)
+            });
+            
+            document.getElementById('nuevoEstudiante').value = '';
+            guardarDatos();
+            actualizarUI();
+        }
+        
+        // MARK ATTENDANCE
+        function marcarAsistencia(estId, semana, valor) {
+            const ciclo = datos[rutaActual][cicloActual];
+            const est = ciclo.estudiantes.find(e => e.id === estId);
+            if (est) {
+                est.asistencias[semana] = valor;
+                guardarDatos();
+                actualizarUI();
+            }
+        }
+        
+        // DELETE STUDENT
+        function eliminarEstudiante(estId) {
+            const ciclo = datos[rutaActual][cicloActual];
+            ciclo.estudiantes = ciclo.estudiantes.filter(e => e.id !== estId);
+            guardarDatos();
+            actualizarUI();
+        }
+        
+        // CALC STATUS
+        function calcularEstado(asistencias, semanas) {
+            const presentes = asistencias.filter(a => a === 1).length;
+            return presentes === semanas ? '✅ GRADUADO' : `Falta ${semanas - presentes}`;
+        }
+        
+        // UPDATE UI
+        function actualizarUI() {
+            const ciclo = datos[rutaActual][cicloActual];
+            
+            // REGISTRO
+            let html = '';
+            ciclo.estudiantes.forEach(est => {
+                const estado = calcularEstado(est.asistencias, ciclo.semanas);
+                const estaGraduado = est.asistencias.filter(a => a === 1).length === ciclo.semanas;
+                html += `
+                    <div class="estudiante-card">
+                        <div class="estudiante-header">
+                            <span class="estudiante-nombre">${est.nombre}</span>
+                            <span class="estado-badge ${estaGraduado ? 'estado-aprobado' : 'estado-pendiente'}">${estado}</span>
+                            <button class="btn-danger" onclick="eliminarEstudiante(${est.id})">Eliminar</button>
+                        </div>
+                        <div class="asistencias">
+                            ${est.asistencias.map((a, i) => `
+                                <div class="semana-control">
+                                    <div class="semana-label">S${i+1}</div>
+                                    <div class="semana-buttons">
+                                        <button class="btn-small ${a === 0 ? 'selected-si' : ''}" onclick="marcarAsistencia(${est.id}, ${i}, 0)">○</button>
+                                        <button class="btn-small ${a === 1 ? 'selected-si' : ''}" onclick="marcarAsistencia(${est.id}, ${i}, 1)">✓</button>
+                                        <button class="btn-small ${a === 2 ? 'selected-no' : ''}" onclick="marcarAsistencia(${est.id}, ${i}, 2)">✗</button>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+            document.getElementById('listaEstudiantes').innerHTML = html || '<p style="color: #999;">No hay estudiantes aún</p>';
+            
+            // CICLO REPORTE
+            const graduados = ciclo.estudiantes.filter(e => e.asistencias.filter(a => a === 1).length === ciclo.semanas).length;
+            const enProgreso = ciclo.estudiantes.length - graduados;
+            document.getElementById('cicloGraduados').textContent = graduados;
+            document.getElementById('cicloEnProgreso').textContent = enProgreso;
+            
+            let reporteHtml = '';
+            ciclo.estudiantes.forEach(est => {
+                const asist = est.asistencias.filter(a => a === 1).length;
+                reporteHtml += `<div class="reporte-item"><span>${est.nombre}</span><span>${asist}/${ciclo.semanas}</span></div>`;
+            });
+            document.getElementById('listaReporte').innerHTML = reporteHtml || '<p style="color: #999;">Sin datos</p>';
+            
+            // ESTADISTICAS GENERALES
+            actualizarEstadisticas();
+        }
+        
+        function actualizarEstadisticas() {
+            const calcTotales = (ruta) => {
+                let inscritos = 0, graduados = 0;
+                Object.values(datos[ruta]).forEach(ciclo => {
+                    inscritos += ciclo.estudiantes.length;
+                    graduados += ciclo.estudiantes.filter(e => {
+                        const sem = ciclo.semanas;
+                        return e.asistencias.filter(a => a === 1).length === sem;
+                    }).length;
+                });
+                return { inscritos, graduados, progreso: inscritos - graduados };
+            };
+            
+            const crece = calcTotales('crece');
+            const efi = calcTotales('efi');
+            
+            document.getElementById('creceInscritos').textContent = crece.inscritos;
+            document.getElementById('creceGraduados').textContent = crece.graduados;
+            document.getElementById('creceProgreso').textContent = crece.progreso;
+            
+            document.getElementById('efiInscritos').textContent = efi.inscritos;
+            document.getElementById('efiGraduados').textContent = efi.graduados;
+            document.getElementById('efiProgreso').textContent = efi.progreso;
+        }
+        
+        // TABS
+        function mostrarTab(tab) {
+            document.querySelectorAll('.content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(`tab-${tab}`).classList.remove('hidden');
+            event.target.classList.add('active');
+        }
+        
+        // DOWNLOAD BACKUP
+        function descargarBackup() {
+            const a = document.createElement('a');
+            a.href = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(datos, null, 2));
+            a.download = 'ammi-legacy-backup.json';
+            a.click();
+        }
+        
+        // INIT
+        cargarDatos();
+        actualizarUI();
+    </script>
+</body>
+</html>
